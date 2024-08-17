@@ -13,7 +13,7 @@ from bson.decimal128 import Decimal128
 from bson.json_util import dumps
 import random
 import traceback
-from datetime import datetime
+import datetime
 
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.crypto import get_random_string
@@ -40,8 +40,7 @@ def main(req):
 @csrf_exempt
 def course_options(req):
     try:
-        body = json.loads(req.body.decode('utf-8'))
-        clerk_id = body.get('cherk_id')
+        clerk_id = req.POST.get('clerk_id')
 
         if not clerk_id:
             return JsonResponse({'error': 'user_id is required'}, status=400)
@@ -67,25 +66,21 @@ def course_options(req):
 def add_course(req):
     try:
         print('recieved')
-        body = json.loads(req.body.decode('utf-8'))
-        clerk_id = body.get('clerk_id')
-        print(clerk_id)
-        title = body.get('title')
+        # uploaded_file = req.POST.get['file']
+        clerk_id = req.POST.get('clerk_id')
+        title = req.POST.get('title')
 
-        if price is None or price <= 0:
-            price = "0.00"
-        else:
-            price = str(price)
-
-        date = datetime.date.today()
+        date = datetime.datetime.today()
         
 
         if not clerk_id:
-            return JsonResponse({'error': 'user_id is required'}, status=400)
+            print('No ClerkID')
+            return JsonResponse({'error': 'clerk_id is required'})
         
         user = users_collection.find_one({'clerk_id': clerk_id})
         if not user:
-            return JsonResponse({'error': 'User not found'}, status=400)
+            print('No User')
+            return JsonResponse({'error': 'User not found'})
 
         # Will dynamically add enrolled gmails. 
         course = {
@@ -95,7 +90,6 @@ def add_course(req):
             "created_at": date,
             "enrolled": 0,
             "earned": Decimal128("0.00"),
-            "price": Decimal128(price),
             "domain": "",
             "published": False,
         }
