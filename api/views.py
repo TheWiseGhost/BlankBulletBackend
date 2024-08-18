@@ -39,18 +39,21 @@ def main(req):
 
 @csrf_exempt
 def course_options(req):
+    print('recieved')
     try:
-        clerk_id = req.POST.get('clerk_id')
+        data = json.loads(req.body.decode("utf-8"))
+        clerk_id = data.get("clerk_id")
 
         if not clerk_id:
-            return JsonResponse({'error': 'user_id is required'}, status=400)
+            print('No clerk_id')
+            return JsonResponse({'error': 'clerk_id is required'}, status=400)
 
-        # Query the courses collection for courses associated with the user_id
-        courses = courses_collection.find({'clerk_id': clerk_id})
+        # Query the courses collection for courses associated with the clerk_id
+        courses = courses_collection.find({'creator_id': clerk_id})
 
         # Format the courses
         formatted_courses = [
-            {'id': str(course['_id']), 'name': course['name']}
+            {'id': str(course['_id']), 'title': course['title']}
             for course in courses
         ]
 
