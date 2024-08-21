@@ -31,6 +31,9 @@ landings_collection = db['Landings']
 modules_collection = db['Modules']
 videos_collection = db['Videos']
 users_collection = db['Users']
+wasabi_access_key = settings.WASABI_ACCESS_KEY
+wasabi_secret_key = settings.WASABI_SECRET_KEY
+wasabi_endpoint_url = 'https://s3.us-east-1.wasabisys.com'
 
 @csrf_exempt
 def main(req):
@@ -72,8 +75,24 @@ def add_course(req):
         # uploaded_file = req.POST.get['file']
         clerk_id = req.POST.get('clerk_id')
         title = req.POST.get('title')
+        my_file = req.FILES['file']
 
         date = datetime.datetime.today()
+
+        session = boto3.session.Session()
+        s3_client = session.client(
+            's3',
+            endpoint_url=wasabi_endpoint_url,
+            aws_access_key_id=wasabi_access_key,
+            aws_secret_access_key=wasabi_secret_key
+        )
+
+        key = f'thumbnails/courses/{clerk_id}_{my_file.name}'
+        s3_client.upload_file(
+            my_file,   # Local file path
+            'coursebucket',         # Bucket name in Wasabi
+            key # Desired key (path) in Wasabi
+        )
         
 
         if not clerk_id:
@@ -95,6 +114,7 @@ def add_course(req):
             "earned": Decimal128("0.00"),
             "domain": "",
             "published": False,
+            "key": key
         }
 
         courses_collection.insert_one(course)

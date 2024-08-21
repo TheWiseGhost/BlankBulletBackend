@@ -134,3 +134,5 @@ load_dotenv(dotenv_path=env_path)
 
 # Get the secret key
 MONGO_URI = os.getenv('MONGO_URI')
+WASABI_ACCESS_KEY = os.getenv('WASABI_ACCESS_KEY')
+WASABI_SECRET_KEY = os.getenv('WASABI_SECRET_KEY')
