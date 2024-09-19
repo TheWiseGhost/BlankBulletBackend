@@ -34,6 +34,12 @@ users_collection = db['Users']
 wasabi_access_key = settings.WASABI_ACCESS_KEY
 wasabi_secret_key = settings.WASABI_SECRET_KEY
 wasabi_endpoint_url = 'https://s3.us-east-1.wasabisys.com'
+aws_access_key_id = settings.AWS_ACCESS_KEY_ID
+aws_secret_access_key = settings.AWS_SECRET_ACCESS_KEY
+
+s3 = boto3.client('s3', aws_access_key_id=aws_access_key_id,
+                          aws_secret_access_key=aws_secret_access_key)
+bucket_name = 'coursard'
 
 @csrf_exempt
 def main(req):
@@ -79,20 +85,16 @@ def add_course(req):
 
         date = datetime.datetime.today()
 
-        session = boto3.session.Session()
-        s3_client = session.client(
-            's3',
-            endpoint_url=wasabi_endpoint_url,
-            aws_access_key_id=wasabi_access_key,
-            aws_secret_access_key=wasabi_secret_key
+        key = f'thumbnails/{clerk_id}_{my_file.name}'
+
+        s3.upload_fileobj(
+            my_file,   # Local file path
+            bucket_name,    
+            key,
+            ExtraArgs={'ACL': 'public-read'}
         )
 
-        key = f'thumbnails/courses/{clerk_id}_{my_file.name}'
-        s3_client.upload_file(
-            my_file,   # Local file path
-            'coursebucket',         # Bucket name in Wasabi
-            key # Desired key (path) in Wasabi
-        )
+        s3_url = f"https://{bucket_name}.s3.amazonaws.com/{key}"
         
 
         if not clerk_id:
@@ -114,7 +116,7 @@ def add_course(req):
             "earned": Decimal128("0.00"),
             "domain": "",
             "published": False,
-            "key": key
+            "thumbnail": s3_url
         }
 
         courses_collection.insert_one(course)
@@ -125,3 +127,4 @@ def add_course(req):
     except Exception as e:
         print(traceback.format_exc())
         return JsonResponse({'error': str(e)}, status=500)
+
