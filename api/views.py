@@ -62,7 +62,7 @@ def course_options(req):
 
         # Format the courses
         formatted_courses = [
-            {'id': str(course['_id']), 'title': course['title']}
+            {'id': str(course['_id']), 'title': course['title'], 'thumbnail': course['thumbnail'] if "thumbnail" in course else ''}
             for course in courses
         ]
 
