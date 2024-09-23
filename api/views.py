@@ -106,7 +106,26 @@ def add_course(req):
             print('No User')
             return JsonResponse({'error': 'User not found'})
 
-        # Will dynamically add enrolled gmails. 
+        landing = {
+            "creator_id": clerk_id, 
+            "creator_name": user['name'],
+            "CTA_text": '',
+            "CTA_color": '',
+            "CTA_link": '',
+            "banner_img": '',
+            "landing_text": '',
+            "module_img": '',
+            "footer_img": '',
+            "footer_text": '',
+            "footer_link": '',
+            "favicon": ''
+        }
+        created_landing = landings_collection.insert_one(landing)
+
+        # Get the ObjectId of the inserted document
+        landing_id = created_landing.inserted_id
+
+         
         course = {
             "creator_id": clerk_id,
             "creator_name": user['name'],
@@ -116,10 +135,20 @@ def add_course(req):
             "earned": Decimal128("0.00"),
             "domain": "",
             "published": False,
-            "thumbnail": s3_url
+            "thumbnail": s3_url, 
+            "landing": str(landing_id)
         }
 
-        courses_collection.insert_one(course)
+        created_course = courses_collection.insert_one(course)
+
+        # Get the ObjectId of the inserted course document
+        course_id = created_course.inserted_id
+
+        # Update the landing document with the course_id
+        landings_collection.update_one(
+            {'_id': landing_id},   # Filter by the landing document's _id
+            {'$set': {'course_id': str(course_id)}}  # Set the course_id
+)
 
         return JsonResponse({'success': True}, status=200)
     except json.JSONDecodeError:
