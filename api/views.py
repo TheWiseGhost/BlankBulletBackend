@@ -78,7 +78,6 @@ def course_options(req):
 def add_course(req):
     try:
         print('recieved')
-        # uploaded_file = req.POST.get['file']
         clerk_id = req.POST.get('clerk_id')
         title = req.POST.get('title')
         my_file = req.FILES['file']
@@ -109,6 +108,7 @@ def add_course(req):
         landing = {
             "creator_id": clerk_id, 
             "creator_name": user['name'],
+            "title": '',
             "CTA_text": '',
             "CTA_color": '',
             "CTA_link": '',
@@ -125,7 +125,6 @@ def add_course(req):
         # Get the ObjectId of the inserted document
         landing_id = created_landing.inserted_id
 
-         
         course = {
             "creator_id": clerk_id,
             "creator_name": user['name'],
@@ -157,3 +156,18 @@ def add_course(req):
         print(traceback.format_exc())
         return JsonResponse({'error': str(e)}, status=500)
 
+
+@csrf_exempt
+def course_details(req):
+    data = json.loads(req.body.decode("utf-8"))
+    clerk_id = data.get("clerk_id")
+    course_id = data.get("course_id")
+    
+    course = courses_collection.find_one({"_id": ObjectId(course_id), "creator_id": clerk_id })
+    course['_id'] = str(course['_id'])
+    course['earned'] = str(course['earned'])
+
+    landing = landings_collection.find_one({"course_id": course_id, "creator_id": clerk_id })
+    landing['_id'] = str(landing['_id'])
+
+    return JsonResponse({'course': course, 'landing': landing}, safe=False)
