@@ -171,3 +171,27 @@ def course_details(req):
     landing['_id'] = str(landing['_id'])
 
     return JsonResponse({'course': course, 'landing': landing}, safe=False)
+
+
+@csrf_exempt
+def update_landing(req):
+    data = json.loads(req.body.decode("utf-8"))
+    course_id = data.get("course_id")
+    clerk_id = data.get("clerk_id")
+    new_landing = data.get("landing")
+
+    landing = landings_collection.find_one({"course_id": course_id, "creator_id": clerk_id })
+
+    if landing:
+        # Remove the _id field from new_landing if it exists
+        if "_id" in new_landing:
+            del new_landing["_id"]
+
+        # Replace the document, keeping the original _id
+        landings_collection.replace_one(
+            {"_id": ObjectId(landing["_id"])},  # Filter by _id
+            new_landing  # New document to replace the old one
+        )
+        return JsonResponse({"status": "success", "message": "Landing replaced successfully"})
+    else:
+        return JsonResponse({"status": "error", "message": "Landing not found"})
