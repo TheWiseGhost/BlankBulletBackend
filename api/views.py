@@ -25,21 +25,18 @@ import json
 import requests
 
 client = MongoClient(f'{settings.MONGO_URI}')
-db = client['Coursard']
-courses_collection = db['Courses']
+db = client['BlankBullet']
+instances_collection = db['Instances']
 landings_collection = db['Landings']
-modules_collection = db['Modules']
-videos_collection = db['Videos']
+forms_collection = db['Forms']
+checkouts_collection = db['Checkouts']
 users_collection = db['Users']
-wasabi_access_key = settings.WASABI_ACCESS_KEY
-wasabi_secret_key = settings.WASABI_SECRET_KEY
-wasabi_endpoint_url = 'https://s3.us-east-1.wasabisys.com'
 aws_access_key_id = settings.AWS_ACCESS_KEY_ID
 aws_secret_access_key = settings.AWS_SECRET_ACCESS_KEY
 
 s3 = boto3.client('s3', aws_access_key_id=aws_access_key_id,
                           aws_secret_access_key=aws_secret_access_key)
-bucket_name = 'coursard'
+bucket_name = 'blankbullet'
 
 @csrf_exempt
 def main(req):
@@ -47,7 +44,7 @@ def main(req):
 
 
 @csrf_exempt
-def course_options(req):
+def bullet_options(req):
     print('recieved')
     try:
         data = json.loads(req.body.decode("utf-8"))
@@ -57,16 +54,16 @@ def course_options(req):
             print('No clerk_id')
             return JsonResponse({'error': 'clerk_id is required'}, status=400)
 
-        # Query the courses collection for courses associated with the clerk_id
-        courses = courses_collection.find({'creator_id': clerk_id})
+        # Query the bullets collection for bullets associated with the clerk_id
+        bullets = instances_collection.find({'creator_id': clerk_id})
 
-        # Format the courses
-        formatted_courses = [
-            {'id': str(course['_id']), 'title': course['title'], 'thumbnail': course['thumbnail'] if "thumbnail" in course else ''}
-            for course in courses
+        # Format the bullets
+        formatted_bullets = [
+            {'id': str(bullet['_id']), 'title': bullet['title'], 'thumbnail': bullet['thumbnail'] if "thumbnail" in bullet else ''}
+            for bullet in bullets
         ]
 
-        return JsonResponse({'courses': formatted_courses}, status=200)
+        return JsonResponse({'bullets': formatted_bullets}, status=200)
     except json.JSONDecodeError:
         return JsonResponse({'error': 'Invalid JSON'}, status=400)
     except Exception as e:
@@ -75,7 +72,7 @@ def course_options(req):
 
 
 @csrf_exempt
-def add_course(req):
+def add_bullet(req):
     try:
         print('recieved')
         clerk_id = req.POST.get('clerk_id')
@@ -108,46 +105,47 @@ def add_course(req):
         landing = {
             "creator_id": clerk_id, 
             "creator_name": user['name'],
-            "title": '',
-            "CTA_text": '',
-            "CTA_color": '',
-            "CTA_link": '',
-            "banner_img": '',
-            "landing_text": '',
-            "module_img": '',
-            "footer_img": '',
-            "footer_text": '',
-            "footer_link": '',
-            "favicon": ''
+            "code": "",
+        }
+
+        form = {
+            "creator_id": clerk_id, 
+            "creator_name": user['name'],
+            "form_data": {},
         }
         created_landing = landings_collection.insert_one(landing)
+        created_form = forms_collection.insert_one(form)
 
         # Get the ObjectId of the inserted document
         landing_id = created_landing.inserted_id
+        form_id = created_form.inserted_id
 
-        course = {
+        bullet = {
             "creator_id": clerk_id,
             "creator_name": user['name'],
             'title': title,
             "created_at": date,
-            "enrolled": 0,
-            "earned": Decimal128("0.00"),
             "domain": "",
             "published": False,
             "thumbnail": s3_url, 
-            "landing": str(landing_id)
+            "landing": str(landing_id),
+            "form": str(form_id)
         }
 
-        created_course = courses_collection.insert_one(course)
+        created_bullet = instances_collection.insert_one(bullet)
 
-        # Get the ObjectId of the inserted course document
-        course_id = created_course.inserted_id
+        # Get the ObjectId of the inserted bullet document
+        bullet_id = created_bullet.inserted_id
 
-        # Update the landing document with the course_id
+        # Update the landing document with the bullet_id
         landings_collection.update_one(
             {'_id': landing_id},   # Filter by the landing document's _id
-            {'$set': {'course_id': str(course_id)}}  # Set the course_id
-)
+            {'$set': {'bullet_id': str(bullet_id)}}  # Set the bullet_id
+        )
+        forms_collection.update_one(
+            {'_id': form_id},
+            {'$set': {'bullet_id': str(bullet_id)}}
+        )
 
         return JsonResponse({'success': True}, status=200)
     except json.JSONDecodeError:
@@ -158,40 +156,74 @@ def add_course(req):
 
 
 @csrf_exempt
-def course_details(req):
+def bullet_details(req):
     data = json.loads(req.body.decode("utf-8"))
     clerk_id = data.get("clerk_id")
-    course_id = data.get("course_id")
+    bullet_id = data.get("bullet_id")
     
-    course = courses_collection.find_one({"_id": ObjectId(course_id), "creator_id": clerk_id })
-    course['_id'] = str(course['_id'])
-    course['earned'] = str(course['earned'])
+    bullet = instances_collection.find_one({"_id": ObjectId(bullet_id), "creator_id": clerk_id })
+    bullet['_id'] = str(bullet['_id'])
 
-    landing = landings_collection.find_one({"course_id": course_id, "creator_id": clerk_id })
+    landing = landings_collection.find_one({"bullet_id": bullet_id, "creator_id": clerk_id })
     landing['_id'] = str(landing['_id'])
 
-    return JsonResponse({'course': course, 'landing': landing}, safe=False)
+    form = forms_collection.find_one({"bullet_id": bullet_id, "creator_id": clerk_id })
+    form['_id'] = str(form['_id'])
+
+    return JsonResponse({'bullet': bullet, 'landing': landing, 'form': form}, safe=False)
 
 
 @csrf_exempt
 def update_landing(req):
+    # Parse the incoming JSON data from the request
     data = json.loads(req.body.decode("utf-8"))
-    course_id = data.get("course_id")
+    bullet_id = data.get("bullet_id")
     clerk_id = data.get("clerk_id")
-    new_landing = data.get("landing")
+    new_code = data.get("landing_code") 
+    print(new_code)
 
-    landing = landings_collection.find_one({"course_id": course_id, "creator_id": clerk_id })
+    # Check if the code is provided in the request
+    if new_code is None:
+        return JsonResponse({"status": "error", "message": "Code is missing from the request"})
+
+    # Find the document matching the bullet_id and creator_id (clerk_id)
+    landing = landings_collection.find_one({"bullet_id": bullet_id, "creator_id": clerk_id})
 
     if landing:
-        # Remove the _id field from new_landing if it exists
-        if "_id" in new_landing:
-            del new_landing["_id"]
-
-        # Replace the document, keeping the original _id
-        landings_collection.replace_one(
-            {"_id": ObjectId(landing["_id"])},  # Filter by _id
-            new_landing  # New document to replace the old one
+        # Update the 'code' field of the document that matches
+        landings_collection.update_one(
+            {"_id": landing["_id"]},  # Find document by its _id
+            {"$set": {"code": new_code}}  # Update the code field
         )
-        return JsonResponse({"status": "success", "message": "Landing replaced successfully"})
+        return JsonResponse({"status": "success", "message": "Code updated successfully"})
     else:
+        print("no landing")
         return JsonResponse({"status": "error", "message": "Landing not found"})
+    
+
+@csrf_exempt
+def update_form(req):
+    # Parse the incoming JSON data from the request
+    data = json.loads(req.body.decode("utf-8"))
+    bullet_id = data.get("bullet_id")
+    clerk_id = data.get("clerk_id")
+    new_form = data.get("form_data") 
+    print(new_form)
+
+    # Check if the code is provided in the request
+    if new_form is None:
+        return JsonResponse({"status": "error", "message": "Form is missing from the request"})
+
+    # Find the document matching the bullet_id and creator_id (clerk_id)
+    form = forms_collection.find_one({"bullet_id": bullet_id, "creator_id": clerk_id})
+
+    if form:
+        # Update the 'code' field of the document that matches
+        forms_collection.update_one(
+            {"_id": form["_id"]},  # Find document by its _id
+            {"$set": {"form_data": new_form}}  # Update the code field
+        )
+        return JsonResponse({"status": "success", "message": "Form updated successfully"})
+    else:
+        print("no landing")
+        return JsonResponse({"status": "error", "message": "Form not found"})

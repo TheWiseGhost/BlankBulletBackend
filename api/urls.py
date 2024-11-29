@@ -1,10 +1,11 @@
 from django.urls import path
-from .views import main, add_course, course_options, course_details, update_landing
+from .views import main, add_bullet, bullet_options, bullet_details, update_landing, update_form
 
 urlpatterns = [
     path('', main),
-    path('course_options/', course_options),
-    path('add_course/', add_course),
-    path('course_details/', course_details),
-    path('update_landing/', update_landing)
+    path('bullet_options/', bullet_options),
+    path('add_bullet/', add_bullet),
+    path('bullet_details/', bullet_details),
+    path('update_landing/', update_landing),
+    path('update_form/', update_form)
 ]
