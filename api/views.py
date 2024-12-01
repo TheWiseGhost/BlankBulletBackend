@@ -113,12 +113,23 @@ def add_bullet(req):
             "creator_name": user['name'],
             "form_data": {},
         }
+
+        checkout = {
+            "creator_id": clerk_id, 
+            "creator_name": user['name'],
+            "checkout_img": '',
+            "finished_img": '',
+            "finished_text": '',
+        }
+
         created_landing = landings_collection.insert_one(landing)
         created_form = forms_collection.insert_one(form)
+        created_checkout = checkouts_collection.insert_one(checkout)
 
         # Get the ObjectId of the inserted document
         landing_id = created_landing.inserted_id
         form_id = created_form.inserted_id
+        checkout_id = created_checkout.inserted_id
 
         bullet = {
             "creator_id": clerk_id,
@@ -129,7 +140,8 @@ def add_bullet(req):
             "published": False,
             "thumbnail": s3_url, 
             "landing": str(landing_id),
-            "form": str(form_id)
+            "form": str(form_id),
+            "checkout": str(checkout_id),
         }
 
         created_bullet = instances_collection.insert_one(bullet)
@@ -144,6 +156,10 @@ def add_bullet(req):
         )
         forms_collection.update_one(
             {'_id': form_id},
+            {'$set': {'bullet_id': str(bullet_id)}}
+        )
+        checkouts_collection.update_one(
+            {'_id': checkout_id},
             {'$set': {'bullet_id': str(bullet_id)}}
         )
 
@@ -170,7 +186,10 @@ def bullet_details(req):
     form = forms_collection.find_one({"bullet_id": bullet_id, "creator_id": clerk_id })
     form['_id'] = str(form['_id'])
 
-    return JsonResponse({'bullet': bullet, 'landing': landing, 'form': form}, safe=False)
+    checkout = checkouts_collection.find_one({"bullet_id": bullet_id, "creator_id": clerk_id })
+    checkout['_id'] = str(checkout['_id'])
+
+    return JsonResponse({'bullet': bullet, 'landing': landing, 'form': form, 'checkout': checkout}, safe=False)
 
 
 @csrf_exempt
@@ -227,3 +246,32 @@ def update_form(req):
     else:
         print("no landing")
         return JsonResponse({"status": "error", "message": "Form not found"})
+    
+
+@csrf_exempt
+def update_checkout(req):
+    # Parse the incoming JSON data from the request
+    data = json.loads(req.body.decode("utf-8"))
+    bullet_id = data.get("bullet_id")
+    clerk_id = data.get("clerk_id")
+    new_checkout_img = data.get("checkout_img")
+    new_finished_img = data.get("finished_img") 
+    new_finished_text = data.get("finished_text")  
+
+    # Check if the code is provided in the request
+    if new_checkout_img is None or new_finished_img is None or new_finished_text is None:
+        return JsonResponse({"status": "error", "message": "Checkout is missing something from the request"})
+
+    # Find the document matching the bullet_id and creator_id (clerk_id)
+    checkout = checkouts_collection.find_one({"bullet_id": bullet_id, "creator_id": clerk_id})
+
+    if checkout:
+        # Update the field of the document that matches
+        checkouts_collection.update_one(
+            {"_id": checkout["_id"]},  # Find document by its _id
+            {"$set": {"checkout_img": new_checkout_img, "finished_img": new_finished_img, "finished_text": new_finished_text}}  # Update the fields
+        )
+        return JsonResponse({"status": "success", "message": "Checkout updated successfully"})
+    else:
+        print("no landing")
+        return JsonResponse({"status": "error", "message": "Checkout not found"})
