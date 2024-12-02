@@ -256,22 +256,60 @@ def update_checkout(req):
     clerk_id = data.get("clerk_id")
     new_checkout_img = data.get("checkout_img")
     new_finished_img = data.get("finished_img") 
-    new_finished_text = data.get("finished_text")  
+    new_finished_text = data.get("finished_text")
 
-    # Check if the code is provided in the request
-    if new_checkout_img is None or new_finished_img is None or new_finished_text is None:
-        return JsonResponse({"status": "error", "message": "Checkout is missing something from the request"})
-
-    # Find the document matching the bullet_id and creator_id (clerk_id)
     checkout = checkouts_collection.find_one({"bullet_id": bullet_id, "creator_id": clerk_id})
 
-    if checkout:
-        # Update the field of the document that matches
-        checkouts_collection.update_one(
-            {"_id": checkout["_id"]},  # Find document by its _id
-            {"$set": {"checkout_img": new_checkout_img, "finished_img": new_finished_img, "finished_text": new_finished_text}}  # Update the fields
-        )
-        return JsonResponse({"status": "success", "message": "Checkout updated successfully"})
-    else:
-        print("no landing")
+    if not checkout:
+        print("no checkout")
         return JsonResponse({"status": "error", "message": "Checkout not found"})
+
+    if new_checkout_img:
+        try:
+            key = f'checkouts/{clerk_id}_{new_checkout_img.name}'
+            s3.upload_fileobj(
+                new_checkout_img,
+                bucket_name,    
+                key,
+                ExtraArgs={'ACL': 'public-read'}
+            )
+
+            checkout_img_s3_url = f"https://{bucket_name}.s3.amazonaws.com/{key}"
+            checkouts_collection.update_one(
+                {"_id": checkout["_id"]},  # Find document by its _id
+                {"$set": {"checkout_img": checkout_img_s3_url}}  # Update the fields
+            )
+        except Exception as e:
+            print(traceback.format_exc())
+            return JsonResponse({'error': str(e)}, status=500)
+
+    if new_finished_img:
+        try:
+            key = f'checkouts/{clerk_id}_{new_finished_img.name}'
+            s3.upload_fileobj(
+                new_finished_img,
+                bucket_name,    
+                key,
+                ExtraArgs={'ACL': 'public-read'}
+            )
+
+            finished_img_s3_url = f"https://{bucket_name}.s3.amazonaws.com/{key}"
+            checkouts_collection.update_one(
+                {"_id": checkout["_id"]},  # Find document by its _id
+                {"$set": {"finished_img": finished_img_s3_url}}  # Update the fields
+            )
+        except Exception as e:
+            print(traceback.format_exc())
+            return JsonResponse({'error': str(e)}, status=500)
+
+    if new_finished_text:
+        try:
+            checkouts_collection.update_one(
+                {"_id": checkout["_id"]},  # Find document by its _id
+                {"$set": {"finished_text": new_finished_text}}  # Update the fields
+            )
+        except Exception as e:
+            print(traceback.format_exc())
+            return JsonResponse({'error': str(e)}, status=500)
+    
+    return JsonResponse({"status": "success", "message": "Checkout updated successfully"})
