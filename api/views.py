@@ -250,13 +250,11 @@ def update_form(req):
 
 @csrf_exempt
 def update_checkout(req):
-    # Parse the incoming JSON data from the request
-    data = json.loads(req.body.decode("utf-8"))
-    bullet_id = data.get("bullet_id")
-    clerk_id = data.get("clerk_id")
-    new_checkout_img = data.get("checkout_img")
-    new_finished_img = data.get("finished_img") 
-    new_finished_text = data.get("finished_text")
+    clerk_id = req.POST.get('clerk_id')
+    bullet_id = req.POST.get('bullet_id')
+    new_checkout_img = req.FILES['checkout_img']
+    new_finished_img = req.FILES['finished_img']
+    new_finished_text = req.POST.get('finished_text')
 
     checkout = checkouts_collection.find_one({"bullet_id": bullet_id, "creator_id": clerk_id})
 
