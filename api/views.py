@@ -252,8 +252,8 @@ def update_form(req):
 def update_checkout(req):
     clerk_id = req.POST.get('clerk_id')
     bullet_id = req.POST.get('bullet_id')
-    new_checkout_img = req.FILES['checkout_img']
-    new_finished_img = req.FILES['finished_img']
+    new_checkout_img = req.FILES.get('checkout_img')
+    new_finished_img = req.FILES.get('finished_img')
     new_finished_text = req.POST.get('finished_text')
 
     checkout = checkouts_collection.find_one({"bullet_id": bullet_id, "creator_id": clerk_id})
