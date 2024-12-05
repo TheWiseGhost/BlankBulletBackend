@@ -120,6 +120,8 @@ def add_bullet(req):
             "checkout_img": '',
             "finished_img": '',
             "finished_text": '',
+            "products": [],
+            "plans": [],
         }
 
         created_landing = landings_collection.insert_one(landing)
@@ -199,7 +201,6 @@ def update_landing(req):
     bullet_id = data.get("bullet_id")
     clerk_id = data.get("clerk_id")
     new_code = data.get("landing_code") 
-    print(new_code)
 
     # Check if the code is provided in the request
     if new_code is None:
@@ -227,7 +228,6 @@ def update_form(req):
     bullet_id = data.get("bullet_id")
     clerk_id = data.get("clerk_id")
     new_form = data.get("form_data") 
-    print(new_form)
 
     # Check if the code is provided in the request
     if new_form is None:
@@ -255,6 +255,9 @@ def update_checkout(req):
     new_checkout_img = req.FILES.get('checkout_img')
     new_finished_img = req.FILES.get('finished_img')
     new_finished_text = req.POST.get('finished_text')
+    new_products = json.loads(req.POST.get('products', '[]'))
+    new_plans = json.loads(req.POST.get('plans', '[]'))
+
 
     checkout = checkouts_collection.find_one({"bullet_id": bullet_id, "creator_id": clerk_id})
 
@@ -305,6 +308,26 @@ def update_checkout(req):
             checkouts_collection.update_one(
                 {"_id": checkout["_id"]},  # Find document by its _id
                 {"$set": {"finished_text": new_finished_text}}  # Update the fields
+            )
+        except Exception as e:
+            print(traceback.format_exc())
+            return JsonResponse({'error': str(e)}, status=500)
+        
+    if new_products:
+        try:
+            checkouts_collection.update_one(
+                {"_id": checkout["_id"]},  # Find document by its _id
+                {"$set": {"products": new_products}}  # Update the fields
+            )
+        except Exception as e:
+            print(traceback.format_exc())
+            return JsonResponse({'error': str(e)}, status=500)
+        
+    if new_plans:
+        try:
+            checkouts_collection.update_one(
+                {"_id": checkout["_id"]},  # Find document by its _id
+                {"$set": {"plans": new_plans}}  # Update the fields
             )
         except Exception as e:
             print(traceback.format_exc())
