@@ -31,6 +31,7 @@ landings_collection = db['Landings']
 forms_collection = db['Forms']
 checkouts_collection = db['Checkouts']
 users_collection = db['Users']
+responses_collection = db['Responses']
 aws_access_key_id = settings.AWS_ACCESS_KEY_ID
 aws_secret_access_key = settings.AWS_SECRET_ACCESS_KEY
 
@@ -334,3 +335,37 @@ def update_checkout(req):
             return JsonResponse({'error': str(e)}, status=500)
     
     return JsonResponse({"status": "success", "message": "Checkout updated successfully"})
+
+
+@csrf_exempt
+def add_form_response(req):
+    # Parse the incoming JSON data from the request
+    data = json.loads(req.body.decode("utf-8"))
+    bullet_id = data.get("bullet_id")
+    form_response = data.get("form_response") 
+
+    # Check if the code is provided in the request
+    if form_response is None:
+        return JsonResponse({"status": "error", "message": "Form is missing from the request"})
+
+    # Find the document matching the bullet_id and creator_id (clerk_id)
+    form = forms_collection.find_one({"bullet_id": bullet_id})
+
+    if form:
+        # Update the 'code' field of the document that matches
+        date = datetime.datetime.today()
+
+        formatted_response = {
+            "bullet_id": bullet_id,
+            'form_id': str(form['_id']),
+            "created_at": date,
+            "response": form_response
+        }
+
+        responses_collection.insert_one(formatted_response)
+
+        return JsonResponse({"status": "success", "message": "Response added"})
+    else:
+        print("no landing")
+        return JsonResponse({"status": "error", "message": "Form not found"})
+    

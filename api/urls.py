@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import main, add_bullet, bullet_options, bullet_details, update_landing, update_form, update_checkout
+from .views import main, add_bullet, bullet_options, bullet_details, update_landing, update_form, update_checkout, add_form_response
 
 urlpatterns = [
     path('', main),
@@ -9,4 +9,5 @@ urlpatterns = [
     path('update_landing/', update_landing),
     path('update_form/', update_form),
     path('update_checkout/', update_checkout),
+    path('add_form_response/', add_form_response),
 ]
