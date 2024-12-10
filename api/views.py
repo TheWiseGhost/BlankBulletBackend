@@ -177,19 +177,18 @@ def add_bullet(req):
 @csrf_exempt
 def bullet_details(req):
     data = json.loads(req.body.decode("utf-8"))
-    clerk_id = data.get("clerk_id")
     bullet_id = data.get("bullet_id")
     
-    bullet = instances_collection.find_one({"_id": ObjectId(bullet_id), "creator_id": clerk_id })
+    bullet = instances_collection.find_one({"_id": ObjectId(bullet_id)})
     bullet['_id'] = str(bullet['_id'])
 
-    landing = landings_collection.find_one({"bullet_id": bullet_id, "creator_id": clerk_id })
+    landing = landings_collection.find_one({"bullet_id": bullet_id})
     landing['_id'] = str(landing['_id'])
 
-    form = forms_collection.find_one({"bullet_id": bullet_id, "creator_id": clerk_id })
+    form = forms_collection.find_one({"bullet_id": bullet_id})
     form['_id'] = str(form['_id'])
 
-    checkout = checkouts_collection.find_one({"bullet_id": bullet_id, "creator_id": clerk_id })
+    checkout = checkouts_collection.find_one({"bullet_id": bullet_id})
     checkout['_id'] = str(checkout['_id'])
 
     return JsonResponse({'bullet': bullet, 'landing': landing, 'form': form, 'checkout': checkout}, safe=False)
