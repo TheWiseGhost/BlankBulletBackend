@@ -32,6 +32,8 @@ forms_collection = db['Forms']
 checkouts_collection = db['Checkouts']
 users_collection = db['Users']
 responses_collection = db['Responses']
+checkout_data_collection = db['CheckoutData']
+data_collection = db['Data']
 aws_access_key_id = settings.AWS_ACCESS_KEY_ID
 aws_secret_access_key = settings.AWS_SECRET_ACCESS_KEY
 
@@ -125,14 +127,25 @@ def add_bullet(req):
             "plans": [],
         }
 
+        data = {
+            "creator_id": clerk_id, 
+            "creator_name": user['name'],
+            "visitors": 0,
+            "reach_form": 0,
+            "reach_checkout": 0,
+            "complete_checkout": 0,
+        }
+
         created_landing = landings_collection.insert_one(landing)
         created_form = forms_collection.insert_one(form)
         created_checkout = checkouts_collection.insert_one(checkout)
+        created_data = data_collection.insert_one(data)
 
         # Get the ObjectId of the inserted document
         landing_id = created_landing.inserted_id
         form_id = created_form.inserted_id
         checkout_id = created_checkout.inserted_id
+        data_id = created_data.inserted_id
 
         bullet = {
             "creator_id": clerk_id,
@@ -145,6 +158,7 @@ def add_bullet(req):
             "landing": str(landing_id),
             "form": str(form_id),
             "checkout": str(checkout_id),
+            "data": str(data_id),
         }
 
         created_bullet = instances_collection.insert_one(bullet)
@@ -367,4 +381,74 @@ def add_form_response(req):
     else:
         print("no landing")
         return JsonResponse({"status": "error", "message": "Form not found"})
+    
+
+@csrf_exempt
+def add_checkout_data(req):
+    # Parse the incoming JSON data from the request
+    data = json.loads(req.body.decode("utf-8"))
+    bullet_id = data.get("bullet_id")
+    checkout_response = data.get("checkout_response") 
+
+    # Check if the code is provided in the request
+    if checkout_response is None:
+        return JsonResponse({"status": "error", "message": "Form is missing from the request"})
+
+    # Find the document matching the bullet_id and creator_id (clerk_id)
+    checkout = checkouts_collection.find_one({"bullet_id": bullet_id})
+
+    if checkout:
+        # Update the 'code' field of the document that matches
+        date = datetime.datetime.today()
+
+        formatted_response = {
+            "bullet_id": bullet_id,
+            'checkout_id': str(checkout['_id']),
+            "created_at": date,
+            "data": checkout_response
+        }
+
+        checkout_data_collection.insert_one(formatted_response)
+
+        return JsonResponse({"status": "success", "message": "Response added"})
+    else:
+        print("no landing")
+        return JsonResponse({"status": "error", "message": "Form not found"})
+    
+
+@csrf_exempt
+def update_data(req):
+    try:
+        data = json.loads(req.body.decode("utf-8"))
+        bullet_id = data.get("bullet_id")
+        page = data.get("page")
+
+        if not bullet_id or not page:
+            return JsonResponse({"error": "Missing bullet_id or page in request."}, status=400)
+
+        # Define the field to increment based on the page
+        field_map = {
+            "landing": "visitors",
+            "form": "reach_form",
+            "checkout": "reach_checkout",
+            "finished": "complete_checkout"
+        }
+
+        if page in field_map:
+            result = data_collection.update_one(
+                {"bullet_id": bullet_id},  # Query to match the document
+                {"$inc": {field_map[page]: 1}}  # Increment the appropriate field
+            )
+
+            if result.matched_count > 0:
+                return JsonResponse({"message": "Field updated successfully."}, status=200)
+            else:
+                return JsonResponse({"error": "Document not found."}, status=404)
+        else:
+            return JsonResponse({"error": "Invalid page value."}, status=400)
+
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON format."}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
     
