@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import main, add_bullet, bullet_options, bullet_details, update_landing, update_form, update_checkout, add_form_response, add_checkout_data, update_data
+from .views import main, add_bullet, bullet_options, bullet_details, update_landing, update_form, update_checkout, add_form_response, add_checkout_data, update_data, get_analytics
 
 urlpatterns = [
     path('', main),
@@ -12,4 +12,5 @@ urlpatterns = [
     path('add_form_response/', add_form_response),
     path('add_checkout_data/', add_checkout_data),
     path('update_data/', update_data),
+    path('get_analytics/', get_analytics),
 ]

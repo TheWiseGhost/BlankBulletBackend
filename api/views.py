@@ -14,6 +14,7 @@ from bson.json_util import dumps
 import random
 import traceback
 import datetime
+from collections import defaultdict
 
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.crypto import get_random_string
@@ -452,3 +453,50 @@ def update_data(req):
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
     
+
+@csrf_exempt
+def get_analytics(req):
+    try:
+        data = json.loads(req.body.decode("utf-8"))
+        clerk_id = data.get("clerk_id")
+        bullet_id = data.get("bullet_id")
+
+        if not clerk_id or not bullet_id:
+            return JsonResponse({"error": "clerk_id and bullet_id are required."}, status=400)
+
+        # Fetch checkout data
+        checkout_data = list(checkout_data_collection.find({"bullet_id": bullet_id, "creator_id": clerk_id}))
+        for checkout in checkout_data:
+            checkout['_id'] = str(checkout['_id'])
+
+        # Fetch responses data
+        responses = list(responses_collection.find({"bullet_id": bullet_id, "creator_id": clerk_id}))
+        for response in responses:
+            response['_id'] = str(response['_id'])
+
+        bullet_data = data_collection.find_one({"bullet_id": bullet_id, "creator_id": clerk_id})
+
+        # Aggregate analytics for responses
+        answer_counts = defaultdict(lambda: defaultdict(int))
+
+        for response in responses:
+            response_data = response.get('response', {})  # Assume 'response' contains {question: answer}
+            for question, answer in response_data.items():
+                answer_counts[question][answer] += 1
+
+        # Prepare analytics data in a readable format
+        form_analytics = {
+            question: dict(answers) for question, answers in answer_counts.items()
+        }
+
+        return JsonResponse({
+            'checkout_data': checkout_data,
+            'responses': responses,
+            'form_analytics': form_analytics,
+            'bullet_data': bullet_data,
+        }, safe=False)
+
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON data."}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": f"An unexpected error occurred: {str(e)}"}, status=500)
