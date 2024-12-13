@@ -180,6 +180,10 @@ def add_bullet(req):
             {'_id': checkout_id},
             {'$set': {'bullet_id': str(bullet_id)}}
         )
+        data_collection.update_one(
+            {'_id': data_id},
+            {'$set': {'bullet_id': str(bullet_id)}}
+        )
 
         return JsonResponse({'success': True}, status=200)
     except json.JSONDecodeError:
@@ -465,16 +469,17 @@ def get_analytics(req):
             return JsonResponse({"error": "clerk_id and bullet_id are required."}, status=400)
 
         # Fetch checkout data
-        checkout_data = list(checkout_data_collection.find({"bullet_id": bullet_id, "creator_id": clerk_id}))
+        checkout_data = list(checkout_data_collection.find({"bullet_id": bullet_id}))
         for checkout in checkout_data:
             checkout['_id'] = str(checkout['_id'])
 
         # Fetch responses data
-        responses = list(responses_collection.find({"bullet_id": bullet_id, "creator_id": clerk_id}))
+        responses = list(responses_collection.find({"bullet_id": bullet_id}))
         for response in responses:
             response['_id'] = str(response['_id'])
 
         bullet_data = data_collection.find_one({"bullet_id": bullet_id, "creator_id": clerk_id})
+        bullet_data['_id'] = str(bullet_data['_id'])
 
         # Aggregate analytics for responses
         answer_counts = defaultdict(lambda: defaultdict(int))
@@ -499,4 +504,5 @@ def get_analytics(req):
     except json.JSONDecodeError:
         return JsonResponse({"error": "Invalid JSON data."}, status=400)
     except Exception as e:
+        print(traceback.format_exc())
         return JsonResponse({"error": f"An unexpected error occurred: {str(e)}"}, status=500)
