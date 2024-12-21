@@ -124,8 +124,8 @@ def add_bullet(req):
             "checkout_img": '',
             "finished_img": '',
             "finished_text": '',
-            "products": [],
-            "plans": [],
+            "quantities": [],
+            "varients": [],
         }
 
         data = {
@@ -274,8 +274,8 @@ def update_checkout(req):
     new_checkout_img = req.FILES.get('checkout_img')
     new_finished_img = req.FILES.get('finished_img')
     new_finished_text = req.POST.get('finished_text')
-    new_products = json.loads(req.POST.get('products', '[]'))
-    new_plans = json.loads(req.POST.get('plans', '[]'))
+    new_quantities = json.loads(req.POST.get('quantities', '[]'))
+    new_varients = json.loads(req.POST.get('varients', '[]'))
 
 
     checkout = checkouts_collection.find_one({"bullet_id": bullet_id, "creator_id": clerk_id})
@@ -332,21 +332,21 @@ def update_checkout(req):
             print(traceback.format_exc())
             return JsonResponse({'error': str(e)}, status=500)
         
-    if new_products:
+    if new_quantities:
         try:
             checkouts_collection.update_one(
                 {"_id": checkout["_id"]},  # Find document by its _id
-                {"$set": {"products": new_products}}  # Update the fields
+                {"$set": {"quantities": new_quantities}}  # Update the fields
             )
         except Exception as e:
             print(traceback.format_exc())
             return JsonResponse({'error': str(e)}, status=500)
         
-    if new_plans:
+    if new_varients:
         try:
             checkouts_collection.update_one(
                 {"_id": checkout["_id"]},  # Find document by its _id
-                {"$set": {"plans": new_plans}}  # Update the fields
+                {"$set": {"varients": new_varients}}  # Update the fields
             )
         except Exception as e:
             print(traceback.format_exc())
