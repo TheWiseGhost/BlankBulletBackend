@@ -276,7 +276,8 @@ def update_checkout(req):
     new_finished_text = req.POST.get('finished_text')
     new_quantities = json.loads(req.POST.get('quantities', '[]'))
     new_varients = json.loads(req.POST.get('varients', '[]'))
-
+    new_product = req.POST.get('product')
+    new_price = req.POST.get('price')
 
     checkout = checkouts_collection.find_one({"bullet_id": bullet_id, "creator_id": clerk_id})
 
@@ -347,6 +348,26 @@ def update_checkout(req):
             checkouts_collection.update_one(
                 {"_id": checkout["_id"]},  # Find document by its _id
                 {"$set": {"varients": new_varients}}  # Update the fields
+            )
+        except Exception as e:
+            print(traceback.format_exc())
+            return JsonResponse({'error': str(e)}, status=500)
+        
+    if new_product:
+        try:
+            checkouts_collection.update_one(
+                {"_id": checkout["_id"]},  # Find document by its _id
+                {"$set": {"product": new_product}}  # Update the fields
+            )
+        except Exception as e:
+            print(traceback.format_exc())
+            return JsonResponse({'error': str(e)}, status=500)
+        
+    if new_price:
+        try:
+            checkouts_collection.update_one(
+                {"_id": checkout["_id"]},  # Find document by its _id
+                {"$set": {"price": new_price}}  # Update the fields
             )
         except Exception as e:
             print(traceback.format_exc())
