@@ -125,7 +125,7 @@ def add_bullet(req):
             "finished_img": '',
             "finished_text": '',
             "quantities": [],
-            "varients": [],
+            "variants": [],
         }
 
         data = {
@@ -275,7 +275,7 @@ def update_checkout(req):
     new_finished_img = req.FILES.get('finished_img')
     new_finished_text = req.POST.get('finished_text')
     new_quantities = json.loads(req.POST.get('quantities', '[]'))
-    new_varients = json.loads(req.POST.get('varients', '[]'))
+    new_variants = json.loads(req.POST.get('variants', '[]'))
     new_product = req.POST.get('product')
     new_price = req.POST.get('price')
 
@@ -343,11 +343,11 @@ def update_checkout(req):
             print(traceback.format_exc())
             return JsonResponse({'error': str(e)}, status=500)
         
-    if new_varients:
+    if new_variants:
         try:
             checkouts_collection.update_one(
                 {"_id": checkout["_id"]},  # Find document by its _id
-                {"$set": {"varients": new_varients}}  # Update the fields
+                {"$set": {"variants": new_variants}}  # Update the fields
             )
         except Exception as e:
             print(traceback.format_exc())
