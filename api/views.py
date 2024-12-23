@@ -231,11 +231,11 @@ def update_landing(req):
     new_other_img1 = req.FILES.get('other_img1')
     new_other_img2 = req.FILES.get('other_img2')
     new_other_img3 = req.FILES.get('other_img3')
-    new_product_title = req.POST.get('product_title')
-    new_brand_name = req.POST.get('brand_name')
-    new_cta = req.POST.get('cta')
-    new_variants = json.loads(req.POST.get('variants', '[]'))
-    new_price = req.POST.get('price')
+    new_product_title = json.loads(req.POST.get('product_title'))
+    new_brand_name = json.loads(req.POST.get('brand_name'))
+    new_cta = json.loads(req.POST.get('cta'))
+    new_variants = req.POST.get('variants', '[]')
+    new_price = json.loads(req.POST.get('price'))
 
     landing = landings_collection.find_one({"bullet_id": bullet_id, "creator_id": clerk_id})
 
@@ -275,7 +275,7 @@ def update_landing(req):
             other_img1_s3_url = f"https://{bucket_name}.s3.amazonaws.com/{key}"
             landings_collection.update_one(
                 {"_id": landing["_id"]},  # Find document by its _id
-                {"$set": {"ohter_img1": other_img1_s3_url}}  # Update the fields
+                {"$set": {"other_img1": other_img1_s3_url}}  # Update the fields
             )
         except Exception as e:
             print(traceback.format_exc())
@@ -294,7 +294,7 @@ def update_landing(req):
             other_img2_s3_url = f"https://{bucket_name}.s3.amazonaws.com/{key}"
             landings_collection.update_one(
                 {"_id": landing["_id"]},  # Find document by its _id
-                {"$set": {"ohter_img2": other_img2_s3_url}}  # Update the fields
+                {"$set": {"other_img2": other_img2_s3_url}}  # Update the fields
             )
         except Exception as e:
             print(traceback.format_exc())
@@ -313,7 +313,7 @@ def update_landing(req):
             other_img3_s3_url = f"https://{bucket_name}.s3.amazonaws.com/{key}"
             landings_collection.update_one(
                 {"_id": landing["_id"]},  # Find document by its _id
-                {"$set": {"ohter_img1": other_img3_s3_url}}  # Update the fields
+                {"$set": {"other_img3": other_img3_s3_url}}  # Update the fields
             )
         except Exception as e:
             print(traceback.format_exc())
@@ -343,16 +343,6 @@ def update_landing(req):
             landings_collection.update_one(
                 {"_id": landing["_id"]},  # Find document by its _id
                 {"$set": {"logo": logo_s3_url}}  # Update the fields
-            )
-        except Exception as e:
-            print(traceback.format_exc())
-            return JsonResponse({'error': str(e)}, status=500)
-
-    if new_product_title:
-        try:
-            landings_collection.update_one(
-                {"_id": landing["_id"]},  # Find document by its _id
-                {"$set": {"product_title": new_product_title}}  # Update the fields
             )
         except Exception as e:
             print(traceback.format_exc())
