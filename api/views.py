@@ -109,7 +109,16 @@ def add_bullet(req):
         landing = {
             "creator_id": clerk_id, 
             "creator_name": user['name'],
-            "code": "",
+            "brand_name": "",
+            "product_title": "",
+            "price": "",
+            "logo": "",
+            "primary_img": "",
+            "other_img1": "",
+            "other_img2": "",
+            "other_img3": "",
+            "cta": "",
+            "variants": [],
         }
 
         form = {
@@ -215,29 +224,184 @@ def bullet_details(req):
 
 @csrf_exempt
 def update_landing(req):
-    # Parse the incoming JSON data from the request
-    data = json.loads(req.body.decode("utf-8"))
-    bullet_id = data.get("bullet_id")
-    clerk_id = data.get("clerk_id")
-    new_code = data.get("landing_code") 
+    clerk_id = req.POST.get('clerk_id')
+    bullet_id = req.POST.get('bullet_id')
+    new_logo = req.FILES.get('logo')
+    new_primary_img = req.FILES.get('primary_img')
+    new_other_img1 = req.FILES.get('other_img1')
+    new_other_img2 = req.FILES.get('other_img2')
+    new_other_img3 = req.FILES.get('other_img3')
+    new_product_title = req.POST.get('product_title')
+    new_brand_name = req.POST.get('brand_name')
+    new_cta = req.POST.get('cta')
+    new_variants = json.loads(req.POST.get('variants', '[]'))
+    new_price = req.POST.get('price')
 
-    # Check if the code is provided in the request
-    if new_code is None:
-        return JsonResponse({"status": "error", "message": "Code is missing from the request"})
-
-    # Find the document matching the bullet_id and creator_id (clerk_id)
     landing = landings_collection.find_one({"bullet_id": bullet_id, "creator_id": clerk_id})
 
-    if landing:
-        # Update the 'code' field of the document that matches
-        landings_collection.update_one(
-            {"_id": landing["_id"]},  # Find document by its _id
-            {"$set": {"code": new_code}}  # Update the code field
-        )
-        return JsonResponse({"status": "success", "message": "Code updated successfully"})
-    else:
+    if not landing:
         print("no landing")
         return JsonResponse({"status": "error", "message": "Landing not found"})
+
+    if new_primary_img:
+        try:
+            key = f'checkouts/{clerk_id}_{new_primary_img.name}'
+            s3.upload_fileobj(
+                new_primary_img,
+                bucket_name,    
+                key,
+                ExtraArgs={'ACL': 'public-read'}
+            )
+
+            primary_img_s3_url = f"https://{bucket_name}.s3.amazonaws.com/{key}"
+            landings_collection.update_one(
+                {"_id": landing["_id"]},  # Find document by its _id
+                {"$set": {"primary_img": primary_img_s3_url}}  # Update the fields
+            )
+        except Exception as e:
+            print(traceback.format_exc())
+            return JsonResponse({'error': str(e)}, status=500)
+
+    if new_other_img1:
+        try:
+            key = f'checkouts/{clerk_id}_{new_other_img1.name}'
+            s3.upload_fileobj(
+                new_other_img1,
+                bucket_name,    
+                key,
+                ExtraArgs={'ACL': 'public-read'}
+            )
+
+            other_img1_s3_url = f"https://{bucket_name}.s3.amazonaws.com/{key}"
+            landings_collection.update_one(
+                {"_id": landing["_id"]},  # Find document by its _id
+                {"$set": {"ohter_img1": other_img1_s3_url}}  # Update the fields
+            )
+        except Exception as e:
+            print(traceback.format_exc())
+            return JsonResponse({'error': str(e)}, status=500)
+        
+    if new_other_img2:
+        try:
+            key = f'checkouts/{clerk_id}_{new_other_img2.name}'
+            s3.upload_fileobj(
+                new_other_img2,
+                bucket_name,    
+                key,
+                ExtraArgs={'ACL': 'public-read'}
+            )
+
+            other_img2_s3_url = f"https://{bucket_name}.s3.amazonaws.com/{key}"
+            landings_collection.update_one(
+                {"_id": landing["_id"]},  # Find document by its _id
+                {"$set": {"ohter_img2": other_img2_s3_url}}  # Update the fields
+            )
+        except Exception as e:
+            print(traceback.format_exc())
+            return JsonResponse({'error': str(e)}, status=500)
+        
+    if new_other_img3:
+        try:
+            key = f'checkouts/{clerk_id}_{new_other_img3.name}'
+            s3.upload_fileobj(
+                new_other_img3,
+                bucket_name,    
+                key,
+                ExtraArgs={'ACL': 'public-read'}
+            )
+
+            other_img3_s3_url = f"https://{bucket_name}.s3.amazonaws.com/{key}"
+            landings_collection.update_one(
+                {"_id": landing["_id"]},  # Find document by its _id
+                {"$set": {"ohter_img1": other_img3_s3_url}}  # Update the fields
+            )
+        except Exception as e:
+            print(traceback.format_exc())
+            return JsonResponse({'error': str(e)}, status=500)
+
+    if new_product_title:
+        try:
+            landings_collection.update_one(
+                {"_id": landing["_id"]},  # Find document by its _id
+                {"$set": {"product_title": new_product_title}}  # Update the fields
+            )
+        except Exception as e:
+            print(traceback.format_exc())
+            return JsonResponse({'error': str(e)}, status=500)
+        
+    if new_logo:
+        try:
+            key = f'checkouts/{clerk_id}_{new_logo.name}'
+            s3.upload_fileobj(
+                new_logo,
+                bucket_name,    
+                key,
+                ExtraArgs={'ACL': 'public-read'}
+            )
+
+            logo_s3_url = f"https://{bucket_name}.s3.amazonaws.com/{key}"
+            landings_collection.update_one(
+                {"_id": landing["_id"]},  # Find document by its _id
+                {"$set": {"logo": logo_s3_url}}  # Update the fields
+            )
+        except Exception as e:
+            print(traceback.format_exc())
+            return JsonResponse({'error': str(e)}, status=500)
+
+    if new_product_title:
+        try:
+            landings_collection.update_one(
+                {"_id": landing["_id"]},  # Find document by its _id
+                {"$set": {"product_title": new_product_title}}  # Update the fields
+            )
+        except Exception as e:
+            print(traceback.format_exc())
+            return JsonResponse({'error': str(e)}, status=500)
+        
+        
+    if new_brand_name:
+        try:
+            landings_collection.update_one(
+                {"_id": landing["_id"]},  # Find document by its _id
+                {"$set": {"brand_name": new_brand_name}}  # Update the fields
+            )
+        except Exception as e:
+            print(traceback.format_exc())
+            return JsonResponse({'error': str(e)}, status=500)
+
+        
+    if new_variants:
+        try:
+            landings_collection.update_one(
+                {"_id": landing["_id"]},  # Find document by its _id
+                {"$set": {"variants": new_variants}}  # Update the fields
+            )
+        except Exception as e:
+            print(traceback.format_exc())
+            return JsonResponse({'error': str(e)}, status=500)
+        
+        
+    if new_price:
+        try:
+            landings_collection.update_one(
+                {"_id": landing["_id"]},  # Find document by its _id
+                {"$set": {"price": new_price}}  # Update the fields
+            )
+        except Exception as e:
+            print(traceback.format_exc())
+            return JsonResponse({'error': str(e)}, status=500)
+        
+    if new_cta:
+        try:
+            landings_collection.update_one(
+                {"_id": landing["_id"]},  # Find document by its _id
+                {"$set": {"cta": new_cta}}  # Update the fields
+            )
+        except Exception as e:
+            print(traceback.format_exc())
+            return JsonResponse({'error': str(e)}, status=500)
+    
+    return JsonResponse({"status": "success", "message": "Checkout updated successfully"})
     
 
 @csrf_exempt
