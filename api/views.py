@@ -245,7 +245,7 @@ def update_landing(req):
 
     if new_primary_img:
         try:
-            key = f'checkouts/{clerk_id}_{new_primary_img.name}'
+            key = f'landings/{clerk_id}_{new_primary_img.name}'
             s3.upload_fileobj(
                 new_primary_img,
                 bucket_name,    
@@ -264,7 +264,7 @@ def update_landing(req):
 
     if new_other_img1:
         try:
-            key = f'checkouts/{clerk_id}_{new_other_img1.name}'
+            key = f'landings/{clerk_id}_{new_other_img1.name}'
             s3.upload_fileobj(
                 new_other_img1,
                 bucket_name,    
@@ -283,7 +283,7 @@ def update_landing(req):
         
     if new_other_img2:
         try:
-            key = f'checkouts/{clerk_id}_{new_other_img2.name}'
+            key = f'landings/{clerk_id}_{new_other_img2.name}'
             s3.upload_fileobj(
                 new_other_img2,
                 bucket_name,    
@@ -302,7 +302,7 @@ def update_landing(req):
         
     if new_other_img3:
         try:
-            key = f'checkouts/{clerk_id}_{new_other_img3.name}'
+            key = f'landings/{clerk_id}_{new_other_img3.name}'
             s3.upload_fileobj(
                 new_other_img3,
                 bucket_name,    
@@ -331,7 +331,7 @@ def update_landing(req):
         
     if new_logo:
         try:
-            key = f'checkouts/{clerk_id}_{new_logo.name}'
+            key = f'landings/{clerk_id}_{new_logo.name}'
             s3.upload_fileobj(
                 new_logo,
                 bucket_name,    
@@ -364,7 +364,7 @@ def update_landing(req):
         try:
             landings_collection.update_one(
                 {"_id": landing["_id"]},  # Find document by its _id
-                {"$set": {"variants": new_variants}}  # Update the fields
+                {"$set": {"variants": new_variants.split(",")}}  # Update the fields
             )
         except Exception as e:
             print(traceback.format_exc())
