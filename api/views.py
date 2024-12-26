@@ -24,6 +24,7 @@ from pymongo.errors import OperationFailure
 import bcrypt
 import json
 import requests
+import re
 
 client = MongoClient(f'{settings.MONGO_URI}')
 db = client['BlankBullet']
@@ -681,3 +682,33 @@ def get_analytics(req):
     except Exception as e:
         print(traceback.format_exc())
         return JsonResponse({"error": f"An unexpected error occurred: {str(e)}"}, status=500)
+
+
+@csrf_exempt
+def add_domain(request):
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            bullet_id = data.get("bullet_id")
+            clerk_id = data.get("clerk_id")
+            domain = data.get("domain")
+
+            if not bullet_id or not clerk_id or not domain:
+                return JsonResponse({"error": "Site ID and domain are required."}, status=400)
+            
+            DOMAIN_REGEX = r"^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$"
+
+            if not re.match(DOMAIN_REGEX, domain):
+                return JsonResponse({"error": "Invalid domain format."}, status=400)
+
+            instances_collection.update_one(
+                {"_id": ObjectId(bullet_id), "creator_id": clerk_id},
+                {"$set": {"domain": domain, "published": True}},
+            )
+
+            return JsonResponse({"message": "Domain successfully mapped."})
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+
+    return JsonResponse({"error": "Invalid request method."}, status=405)
+
