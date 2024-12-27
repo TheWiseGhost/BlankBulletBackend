@@ -195,6 +195,11 @@ def add_bullet(req):
             {'$set': {'bullet_id': str(bullet_id)}}
         )
 
+        users_collection.update_one(
+            {'clerk_id': clerk_id},
+            {'$inc': {'num_active_bullets': 1}}
+        )
+
         return JsonResponse({'success': True}, status=200)
     except json.JSONDecodeError:
         return JsonResponse({'error': 'Invalid JSON'}, status=400)
@@ -712,3 +717,26 @@ def add_domain(request):
 
     return JsonResponse({"error": "Invalid request method."}, status=405)
 
+
+@csrf_exempt
+def user_details(req):
+    try:
+        # Parse the request body
+        data = json.loads(req.body)
+        clerk_id = data.get("clerk_id")
+
+        if not clerk_id:
+            return JsonResponse({"error": "clerk_id is required"}, status=400)
+
+        # Find the user in the database
+        user = users_collection.find_one({'clerk_id': clerk_id})
+        if not user:
+            return JsonResponse({"error": "User not found"}, status=404)
+
+        # Convert ObjectId to string
+        user['_id'] = str(user['_id'])
+
+        return JsonResponse({'user': user})
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
