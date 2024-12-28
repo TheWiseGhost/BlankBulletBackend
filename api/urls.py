@@ -1,12 +1,12 @@
 from django.urls import path
-from .views import main, add_bullet, bullet_options, bullet_details, update_landing, update_form, update_checkout, add_form_response, add_checkout_data, update_data, get_analytics, add_domain
+from .views import main, add_drop, drop_options, drop_details, update_landing, update_form, update_checkout, add_form_response, add_checkout_data, update_data, get_analytics, add_domain
 from .views import user_details
 
 urlpatterns = [
     path('', main),
-    path('bullet_options/', bullet_options),
-    path('add_bullet/', add_bullet),
-    path('bullet_details/', bullet_details),
+    path('drop_options/', drop_options),
+    path('add_drop/', add_drop),
+    path('drop_details/', drop_details),
     path('update_landing/', update_landing),
     path('update_form/', update_form),
     path('update_checkout/', update_checkout),

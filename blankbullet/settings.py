@@ -23,13 +23,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-hfkz&4e^!&2-i$3+lrm+7$0-77!fnoa+920wfkb(=1q_-+#g!g'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+# ALLOWED_HOSTS = ["*"]
+
 CORS_ALLOWED_ORIGINS = ["http://localhost:3000"]
+# CORS_ALLOWED_ORIGINS = ["*"]
 
 
 # Application definition
@@ -136,3 +138,4 @@ load_dotenv(dotenv_path=env_path)
 MONGO_URI = os.getenv('MONGO_URI')
 AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
 AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')

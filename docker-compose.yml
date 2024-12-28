@@ -1,0 +1,47 @@
+version: "3.8"
+
+services:
+  web:
+    image: python:3.10
+    container_name: django_app
+    command: bash -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - .:/app
+    working_dir: /app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mongodb
+    environment:
+      - DJANGO_SETTINGS_MODULE=blankbullet.settings
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
+      - MONGO_URI=${MONGO_URI}
+    networks:
+      - backend
+
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - backend
+
+  redis:
+    image: redis:alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - backend
+
+volumes:
+  mongodb_data:
+
+networks:
+  backend:
+    driver: bridge

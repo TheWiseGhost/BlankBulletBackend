@@ -1,29 +1,17 @@
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.views import View
 from pymongo import MongoClient
-from rest_framework import status
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
 from django.conf import settings
 import boto3
-from botocore.exceptions import ClientError
 from bson import ObjectId
-from bson.decimal128 import Decimal128
-from bson.json_util import dumps
-import random
 import traceback
 import datetime
 from collections import defaultdict
 
 from django.views.decorators.csrf import csrf_exempt
-from django.utils.crypto import get_random_string
 from django.http import JsonResponse
 from pymongo import MongoClient
-from pymongo.errors import OperationFailure
-import bcrypt
 import json
-import requests
 import re
 
 client = MongoClient(f'{settings.MONGO_URI}')
@@ -49,7 +37,7 @@ def main(req):
 
 
 @csrf_exempt
-def bullet_options(req):
+def drop_options(req):
     print('recieved')
     try:
         data = json.loads(req.body.decode("utf-8"))
@@ -59,16 +47,16 @@ def bullet_options(req):
             print('No clerk_id')
             return JsonResponse({'error': 'clerk_id is required'}, status=400)
 
-        # Query the bullets collection for bullets associated with the clerk_id
-        bullets = instances_collection.find({'creator_id': clerk_id})
+        # Query the drops collection for drops associated with the clerk_id
+        drops = instances_collection.find({'creator_id': clerk_id})
 
-        # Format the bullets
-        formatted_bullets = [
-            {'id': str(bullet['_id']), 'title': bullet['title'], 'thumbnail': bullet['thumbnail'] if "thumbnail" in bullet else ''}
-            for bullet in bullets
+        # Format the drops
+        formatted_drops = [
+            {'id': str(drop['_id']), 'title': drop['title'], 'thumbnail': drop['thumbnail'] if "thumbnail" in drop else ''}
+            for drop in drops
         ]
 
-        return JsonResponse({'bullets': formatted_bullets}, status=200)
+        return JsonResponse({'drops': formatted_drops}, status=200)
     except json.JSONDecodeError:
         return JsonResponse({'error': 'Invalid JSON'}, status=400)
     except Exception as e:
@@ -77,7 +65,7 @@ def bullet_options(req):
 
 
 @csrf_exempt
-def add_bullet(req):
+def add_drop(req):
     try:
         print('recieved')
         clerk_id = req.POST.get('clerk_id')
@@ -158,7 +146,7 @@ def add_bullet(req):
         checkout_id = created_checkout.inserted_id
         data_id = created_data.inserted_id
 
-        bullet = {
+        drop = {
             "creator_id": clerk_id,
             "creator_name": user['name'],
             'title': title,
@@ -172,32 +160,32 @@ def add_bullet(req):
             "data": str(data_id),
         }
 
-        created_bullet = instances_collection.insert_one(bullet)
+        created_drop = instances_collection.insert_one(drop)
 
-        # Get the ObjectId of the inserted bullet document
-        bullet_id = created_bullet.inserted_id
+        # Get the ObjectId of the inserted drop document
+        drop_id = created_drop.inserted_id
 
-        # Update the landing document with the bullet_id
+        # Update the landing document with the drop_id
         landings_collection.update_one(
             {'_id': landing_id},   # Filter by the landing document's _id
-            {'$set': {'bullet_id': str(bullet_id)}}  # Set the bullet_id
+            {'$set': {'drop_id': str(drop_id)}}  # Set the drop_id
         )
         forms_collection.update_one(
             {'_id': form_id},
-            {'$set': {'bullet_id': str(bullet_id)}}
+            {'$set': {'drop_id': str(drop_id)}}
         )
         checkouts_collection.update_one(
             {'_id': checkout_id},
-            {'$set': {'bullet_id': str(bullet_id)}}
+            {'$set': {'drop_id': str(drop_id)}}
         )
         data_collection.update_one(
             {'_id': data_id},
-            {'$set': {'bullet_id': str(bullet_id)}}
+            {'$set': {'drop_id': str(drop_id)}}
         )
 
         users_collection.update_one(
             {'clerk_id': clerk_id},
-            {'$inc': {'num_active_bullets': 1}}
+            {'$inc': {'num_active_drops': 1}}
         )
 
         return JsonResponse({'success': True}, status=200)
@@ -209,29 +197,29 @@ def add_bullet(req):
 
 
 @csrf_exempt
-def bullet_details(req):
+def drop_details(req):
     data = json.loads(req.body.decode("utf-8"))
-    bullet_id = data.get("bullet_id")
+    drop_id = data.get("drop_id")
     
-    bullet = instances_collection.find_one({"_id": ObjectId(bullet_id)})
-    bullet['_id'] = str(bullet['_id'])
+    drop = instances_collection.find_one({"_id": ObjectId(drop_id)})
+    drop['_id'] = str(drop['_id'])
 
-    landing = landings_collection.find_one({"bullet_id": bullet_id})
+    landing = landings_collection.find_one({"drop_id": drop_id})
     landing['_id'] = str(landing['_id'])
 
-    form = forms_collection.find_one({"bullet_id": bullet_id})
+    form = forms_collection.find_one({"drop_id": drop_id})
     form['_id'] = str(form['_id'])
 
-    checkout = checkouts_collection.find_one({"bullet_id": bullet_id})
+    checkout = checkouts_collection.find_one({"drop_id": drop_id})
     checkout['_id'] = str(checkout['_id'])
 
-    return JsonResponse({'bullet': bullet, 'landing': landing, 'form': form, 'checkout': checkout}, safe=False)
+    return JsonResponse({'drop': drop, 'landing': landing, 'form': form, 'checkout': checkout}, safe=False)
 
 
 @csrf_exempt
 def update_landing(req):
     clerk_id = req.POST.get('clerk_id')
-    bullet_id = req.POST.get('bullet_id')
+    drop_id = req.POST.get('drop_id')
     new_logo = req.FILES.get('logo')
     new_primary_img = req.FILES.get('primary_img')
     new_other_img1 = req.FILES.get('other_img1')
@@ -243,7 +231,7 @@ def update_landing(req):
     new_variants = req.POST.get('variants', '[]')
     new_price = json.loads(req.POST.get('price'))
 
-    landing = landings_collection.find_one({"bullet_id": bullet_id, "creator_id": clerk_id})
+    landing = landings_collection.find_one({"drop_id": drop_id, "creator_id": clerk_id})
 
     if not landing:
         print("no landing")
@@ -404,7 +392,7 @@ def update_landing(req):
 def update_form(req):
     # Parse the incoming JSON data from the request
     data = json.loads(req.body.decode("utf-8"))
-    bullet_id = data.get("bullet_id")
+    drop_id = data.get("drop_id")
     clerk_id = data.get("clerk_id")
     new_form = data.get("form_data") 
 
@@ -412,8 +400,8 @@ def update_form(req):
     if new_form is None:
         return JsonResponse({"status": "error", "message": "Form is missing from the request"})
 
-    # Find the document matching the bullet_id and creator_id (clerk_id)
-    form = forms_collection.find_one({"bullet_id": bullet_id, "creator_id": clerk_id})
+    # Find the document matching the drop_id and creator_id (clerk_id)
+    form = forms_collection.find_one({"drop_id": drop_id, "creator_id": clerk_id})
 
     if form:
         # Update the 'code' field of the document that matches
@@ -430,7 +418,7 @@ def update_form(req):
 @csrf_exempt
 def update_checkout(req):
     clerk_id = req.POST.get('clerk_id')
-    bullet_id = req.POST.get('bullet_id')
+    drop_id = req.POST.get('drop_id')
     new_checkout_img = req.FILES.get('checkout_img')
     new_finished_img = req.FILES.get('finished_img')
     new_finished_text = req.POST.get('finished_text')
@@ -439,7 +427,7 @@ def update_checkout(req):
     new_product = req.POST.get('product')
     new_price = req.POST.get('price')
 
-    checkout = checkouts_collection.find_one({"bullet_id": bullet_id, "creator_id": clerk_id})
+    checkout = checkouts_collection.find_one({"drop_id": drop_id, "creator_id": clerk_id})
 
     if not checkout:
         print("no checkout")
@@ -540,22 +528,22 @@ def update_checkout(req):
 def add_form_response(req):
     # Parse the incoming JSON data from the request
     data = json.loads(req.body.decode("utf-8"))
-    bullet_id = data.get("bullet_id")
+    drop_id = data.get("drop_id")
     form_response = data.get("form_response") 
 
     # Check if the code is provided in the request
     if form_response is None:
         return JsonResponse({"status": "error", "message": "Form is missing from the request"})
 
-    # Find the document matching the bullet_id and creator_id (clerk_id)
-    form = forms_collection.find_one({"bullet_id": bullet_id})
+    # Find the document matching the drop_id and creator_id (clerk_id)
+    form = forms_collection.find_one({"drop_id": drop_id})
 
     if form:
         # Update the 'code' field of the document that matches
         date = datetime.datetime.today()
 
         formatted_response = {
-            "bullet_id": bullet_id,
+            "drop_id": drop_id,
             'form_id': str(form['_id']),
             "created_at": date,
             "response": form_response
@@ -573,22 +561,22 @@ def add_form_response(req):
 def add_checkout_data(req):
     # Parse the incoming JSON data from the request
     data = json.loads(req.body.decode("utf-8"))
-    bullet_id = data.get("bullet_id")
+    drop_id = data.get("drop_id")
     checkout_response = data.get("checkout_response") 
 
     # Check if the code is provided in the request
     if checkout_response is None:
         return JsonResponse({"status": "error", "message": "Form is missing from the request"})
 
-    # Find the document matching the bullet_id and creator_id (clerk_id)
-    checkout = checkouts_collection.find_one({"bullet_id": bullet_id})
+    # Find the document matching the drop_id and creator_id (clerk_id)
+    checkout = checkouts_collection.find_one({"drop_id": drop_id})
 
     if checkout:
         # Update the 'code' field of the document that matches
         date = datetime.datetime.today()
 
         formatted_response = {
-            "bullet_id": bullet_id,
+            "drop_id": drop_id,
             'checkout_id': str(checkout['_id']),
             "created_at": date,
             "data": checkout_response
@@ -606,11 +594,11 @@ def add_checkout_data(req):
 def update_data(req):
     try:
         data = json.loads(req.body.decode("utf-8"))
-        bullet_id = data.get("bullet_id")
+        drop_id = data.get("drop_id")
         page = data.get("page")
 
-        if not bullet_id or not page:
-            return JsonResponse({"error": "Missing bullet_id or page in request."}, status=400)
+        if not drop_id or not page:
+            return JsonResponse({"error": "Missing drop_id or page in request."}, status=400)
 
         # Define the field to increment based on the page
         field_map = {
@@ -622,7 +610,7 @@ def update_data(req):
 
         if page in field_map:
             result = data_collection.update_one(
-                {"bullet_id": bullet_id},  # Query to match the document
+                {"drop_id": drop_id},  # Query to match the document
                 {"$inc": {field_map[page]: 1}}  # Increment the appropriate field
             )
 
@@ -644,23 +632,23 @@ def get_analytics(req):
     try:
         data = json.loads(req.body.decode("utf-8"))
         clerk_id = data.get("clerk_id")
-        bullet_id = data.get("bullet_id")
+        drop_id = data.get("drop_id")
 
-        if not clerk_id or not bullet_id:
-            return JsonResponse({"error": "clerk_id and bullet_id are required."}, status=400)
+        if not clerk_id or not drop_id:
+            return JsonResponse({"error": "clerk_id and drop_id are required."}, status=400)
 
         # Fetch checkout data
-        checkout_data = list(checkout_data_collection.find({"bullet_id": bullet_id}))
+        checkout_data = list(checkout_data_collection.find({"drop_id": drop_id}))
         for checkout in checkout_data:
             checkout['_id'] = str(checkout['_id'])
 
         # Fetch responses data
-        responses = list(responses_collection.find({"bullet_id": bullet_id}))
+        responses = list(responses_collection.find({"drop_id": drop_id}))
         for response in responses:
             response['_id'] = str(response['_id'])
 
-        bullet_data = data_collection.find_one({"bullet_id": bullet_id, "creator_id": clerk_id})
-        bullet_data['_id'] = str(bullet_data['_id'])
+        drop_data = data_collection.find_one({"drop_id": drop_id, "creator_id": clerk_id})
+        drop_data['_id'] = str(drop_data['_id'])
 
         # Aggregate analytics for responses
         answer_counts = defaultdict(lambda: defaultdict(int))
@@ -679,7 +667,7 @@ def get_analytics(req):
             'checkout_data': checkout_data,
             'responses': responses,
             'form_analytics': form_analytics,
-            'bullet_data': bullet_data,
+            'drop_data': drop_data,
         }, safe=False)
 
     except json.JSONDecodeError:
@@ -694,11 +682,11 @@ def add_domain(request):
     if request.method == "POST":
         try:
             data = json.loads(request.body)
-            bullet_id = data.get("bullet_id")
+            drop_id = data.get("drop_id")
             clerk_id = data.get("clerk_id")
             domain = data.get("domain")
 
-            if not bullet_id or not clerk_id or not domain:
+            if not drop_id or not clerk_id or not domain:
                 return JsonResponse({"error": "Site ID and domain are required."}, status=400)
             
             DOMAIN_REGEX = r"^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$"
@@ -707,7 +695,7 @@ def add_domain(request):
                 return JsonResponse({"error": "Invalid domain format."}, status=400)
 
             instances_collection.update_one(
-                {"_id": ObjectId(bullet_id), "creator_id": clerk_id},
+                {"_id": ObjectId(drop_id), "creator_id": clerk_id},
                 {"$set": {"domain": domain, "published": True}},
             )
 
