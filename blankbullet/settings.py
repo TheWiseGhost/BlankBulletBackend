@@ -30,7 +30,7 @@ DEBUG = True
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'blankdropbackend.onrender.com']
 # ALLOWED_HOSTS = ["*"]
 
-CORS_ALLOWED_ORIGINS = ["http://localhost:3000", "https://blankdrop.vercel.app/"]
+CORS_ALLOWED_ORIGINS = ["http://localhost:3000", "https://blankdrop.vercel.app"]
 # CORS_ALLOWED_ORIGINS = ["*"]
 
 
