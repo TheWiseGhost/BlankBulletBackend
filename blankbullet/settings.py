@@ -30,7 +30,7 @@ DEBUG = True
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'trydropfastbackend.onrender.com']
 # ALLOWED_HOSTS = ["*"]
 
-CORS_ALLOWED_ORIGINS = ["http://localhost:3000", "https://trydropfast.vercel.app"]
+CORS_ALLOWED_ORIGINS = ["http://localhost:3000", "https://trydropfast.vercel.app", "https://trydropfast.com"]
 # CORS_ALLOWED_ORIGINS = ["*"]
 
 
