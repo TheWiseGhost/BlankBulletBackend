@@ -1,0 +1,15 @@
+{
+  "builds": [
+    {
+      "src": "blankbullet/wsgi.py",
+      "use": "@vercel/python",
+      "config": { "runtime": "python3.9" }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "blankbullet/wsgi.py"
+    }
+  ]
+}

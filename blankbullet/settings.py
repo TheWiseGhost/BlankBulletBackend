@@ -25,13 +25,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'trydropfastbackend.onrender.com']
-# ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'dropfastbackend.onrender.com', '*.vercel.app']
 
 CORS_ALLOWED_ORIGINS = ["http://localhost:3000", "https://trydropfast.vercel.app", "https://trydropfast.com"]
-# CORS_ALLOWED_ORIGINS = ["*"]
+
 
 
 # Application definition
@@ -45,6 +44,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'api.apps.ApiConfig',
+    'storages'
 ]
 
 MIDDLEWARE = [
@@ -139,3 +139,14 @@ MONGO_URI = os.getenv('MONGO_URI')
 AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
 AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
+
+AWS_STORAGE_BUCKET_NAME = 'blankbullet'
+AWS_S3_REGION_NAME = 'us-east-1'
+AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com'
+
+STATICFILES_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+STATIC_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/static/'
+MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/media/'
+
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
