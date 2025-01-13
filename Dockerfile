@@ -1,38 +1,18 @@
-# Use the official Python image
-FROM python:3.10-slim
-
-# Set environment variables
+# Use the official Python image from the Docker Hub
+FROM python:3.9-slim
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-
-# Set the working directory in the container
+# Set the working directory inside the container
 WORKDIR /app
-
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    libpq-dev \
-    curl \
-    unzip \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install AWS CLI (required for Zappa)
-RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && \
-    unzip awscliv2.zip && \
-    ./aws/install && \
-    rm -rf awscliv2.zip ./aws/
-
-# Copy the project files into the container
+# Copy the requirements file into the container at /app
+COPY requirements.txt /app/
+# Install dependencies from requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+# Copy the entire application into the container at /app
 COPY . /app/
-
-# Install Python dependencies
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
-
-
-# Expose port 8000 for local development (optional)
-EXPOSE 8000
-
-# Default command for debugging or deploying
-# CMD ["bash"]
-CMD ["python", "-m", "app"]
+# Ensure the database is created, migrations are applied, and static files are collected
+RUN python manage.py migrate
+# Expose the port that the app will run on (Render uses port 10000 by default)
+EXPOSE 10000
+# Run the Django application using Gunicorn
+CMD ["gunicorn", "--bind", "0.0.0.0:10000", "blankbullet.wsgi:application"]
