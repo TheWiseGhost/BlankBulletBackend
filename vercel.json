@@ -3,7 +3,10 @@
     {
       "src": "blankbullet/wsgi.py",
       "use": "@vercel/python",
-      "config": { "runtime": "python3.11" }
+      "config": {
+        "installCommand": "pip install -r requirements.txt",
+        "runtime": "python3.11"
+      }
     }
   ],
   "routes": [
