@@ -13,6 +13,9 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 from dotenv import load_dotenv
 import os
 from pathlib import Path
+import collections.abc
+import pathlib
+pathlib.Sequence = collections.abc.Sequence
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
