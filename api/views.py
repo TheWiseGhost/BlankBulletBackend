@@ -13,6 +13,7 @@ from django.http import JsonResponse
 from pymongo import MongoClient
 import json
 import re
+import stripe
 
 client = MongoClient(f'{settings.MONGO_URI}')
 db = client['BlankBullet']
@@ -728,3 +729,113 @@ def user_details(req):
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+
+
+
+# STRIPE CHECKOUT STUFF
+
+# Set Stripe API key
+stripe.api_key = settings.STRIPE_SK
+
+# Stripe webhook secret
+WEBHOOK_SECRET = settings.STRIPE_WEBHOOK_SECRET
+
+@csrf_exempt
+def create_checkout_session(request):
+    """
+    Creates a Stripe Checkout Session for one-time payments.
+    """
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            product_id = data.get("product_id")
+            user_id = data.get("user_id")
+            print(user_id)
+
+            # Product price mapping in cents (e.g., $5 = 500 cents)
+            product_to_price_mapping = {
+                "prod_RbKH6n0xMLncqe": "price_1Qi7d0EDEXUqncIqb4uC08Wb",   # $5
+                "prod_RbKIjVji5glZrB": "price_1Qi7dsEDEXUqncIqzC3EVT2k",  # $15
+            }
+
+            if product_id not in product_to_price_mapping:
+                return JsonResponse({"error": "Invalid Product ID"}, status=400)
+
+            # Create a Stripe Checkout Session
+            session = stripe.checkout.Session.create(
+                payment_method_types=["card"],
+                line_items=[
+                    {
+                        "price": product_to_price_mapping[product_id],
+                        "quantity": 1,
+                    }
+                ],
+                mode="payment",  # One-time payment mode
+                success_url="https://trydropfast.com/dashboard",
+                cancel_url="https://trydropfast.com/dashboard",
+                metadata={
+                    "user_id": user_id,  # Attach user ID as metadata
+                    "product_id": product_id,  # Attach product ID as metadata
+                }
+            )
+
+            return JsonResponse({"url": session.url})
+
+        except Exception as e:
+            print(traceback.format_exc())
+            return JsonResponse({"error": str(e)}, status=400)
+
+
+@csrf_exempt
+def stripe_webhook(request):
+    """
+    Handles Stripe webhook events.
+    """
+    payload = request.body
+    sig_header = request.META['HTTP_STRIPE_SIGNATURE']
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, WEBHOOK_SECRET
+        )
+    except stripe.error.SignatureVerificationError as e:
+        # Signature doesn't match
+        return JsonResponse({'error': 'Invalid signature'}, status=400)
+
+    # Handle checkout.session.completed
+    if event["type"] == "checkout.session.completed":
+        session = event["data"]["object"]
+        handle_checkout_session(session)
+
+    return JsonResponse({"status": "success"}, status=200)
+
+
+def handle_checkout_session(session):
+    """
+    Processes the checkout session completion event.
+    """
+    user_id = session["metadata"].get("user_id")
+    product_id = session["metadata"].get("product_id")
+
+    # Map product_id to ad credits
+    product_to_credit = {
+        "prod_RbKH6n0xMLncqe": 1,
+        "prod_RbKIjVji5glZrB": 6,
+    }
+
+    credit = product_to_credit.get(product_id, 0)
+    # ad_credit_value = Decimal128(Decimal(credit)).to_decimal()
+
+    if user_id:
+        user = users_collection.find_one({'clerk_id': user_id})
+    else:
+        print("no user id")    
+
+    if user and credit > 0:
+        try:
+            users_collection.update_one({'clerk_id': user_id}, {
+                        '$inc': {'num_drops': credit}
+                    })
+            print(f"Added {credit} drops to user {user_id}.")
+        except Exception as e:
+            print(f"Failed to update MongoDB: {e}")
