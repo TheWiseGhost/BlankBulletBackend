@@ -9,9 +9,9 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # SECURITY WARNING: keep the secret key used in production secret!
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'dropfastbackend.onrender.com']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'dropfastbackend.onrender.com', 'bada-2600-1700-4880-efc0-a148-964d-5540-50b.ngrok-free.app']
 
 CORS_ALLOWED_ORIGINS = ["http://localhost:3000", "https://trydropfast.vercel.app", "https://trydropfast.com"]
 
