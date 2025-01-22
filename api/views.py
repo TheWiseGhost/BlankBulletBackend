@@ -14,6 +14,7 @@ from pymongo import MongoClient
 import json
 import re
 import stripe
+from functools import wraps
 
 client = MongoClient(f'{settings.MONGO_URI}')
 db = client['BlankBullet']
@@ -32,10 +33,25 @@ s3 = boto3.client('s3', aws_access_key_id=aws_access_key_id,
                           aws_secret_access_key=aws_secret_access_key)
 bucket_name = 'blankbullet'
 
+
+def allow_cors(func):
+    @wraps(func)
+    def wrapper(request, *args, **kwargs):
+        response = func(request, *args, **kwargs)
+        if not isinstance(response, JsonResponse):
+            return response
+        # Add CORS headers to the response
+        response["Access-Control-Allow-Origin"] = "*"
+        response["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS, PUT, DELETE"
+        response["Access-Control-Allow-Headers"] = "*"
+        return response
+    return wrapper
+
+
+@allow_cors
 @csrf_exempt
 def main(req):
     return HttpResponse("Wsg")
-
 
 @csrf_exempt
 def drop_options(req):
@@ -197,6 +213,7 @@ def add_drop(req):
         return JsonResponse({'error': str(e)}, status=500)
 
 
+@allow_cors
 @csrf_exempt
 def drop_details(req):
     data = json.loads(req.body.decode("utf-8"))
@@ -525,6 +542,7 @@ def update_checkout(req):
     return JsonResponse({"status": "success", "message": "Checkout updated successfully"})
 
 
+@allow_cors
 @csrf_exempt
 def add_form_response(req):
     # Parse the incoming JSON data from the request
@@ -558,6 +576,7 @@ def add_form_response(req):
         return JsonResponse({"status": "error", "message": "Form not found"})
     
 
+@allow_cors
 @csrf_exempt
 def add_checkout_data(req):
     # Parse the incoming JSON data from the request
@@ -591,6 +610,7 @@ def add_checkout_data(req):
         return JsonResponse({"status": "error", "message": "Form not found"})
     
 
+@allow_cors
 @csrf_exempt
 def update_data(req):
     try:
